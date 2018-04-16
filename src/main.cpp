@@ -110,20 +110,24 @@ void App::create() {
   // (1.0, -1.0) is bottom right
   const float sz = 1.0f;
   float vertices[] = {
-    0.0f, sz, 0.0f,
-    sz, -sz, 0.0f,
-    -sz, -sz, 0.0f
+    // x, y, z, r, g, b
+    0.0f, sz, 0.0f, 1.0f, 0.0f, 0.0f,
+    sz, -sz, 0.0f, 0.0f, 1.0f, 0.0f,
+    -sz, -sz, 0.0f, 0.0f, 0.0f, 1.0f
   };
 
   const char* vertexShaderSource =
     "#version 410 core\n"
     "layout(location = 0) in vec3 vertex;\n"
-    "void main(){gl_Position = vec4(vertex, 1.0);}";
+    "layout(location = 1) in vec3 color;\n"
+    "out vec3 fragColor;\n"
+    "void main(){gl_Position = vec4(vertex, 1.0);fragColor=color;}";
 
   const char* fragmentShaderSource =
     "#version 410 core\n"
+    "in vec3 fragColor;\n"
     "out vec4 color;\n"
-    "void main(){color = vec4(1, 1, 1, 1);}";
+    "void main(){color = vec4(fragColor, 1);}";
 
   unsigned int vs = glCreateShader(GL_VERTEX_SHADER);
   unsigned int fs = glCreateShader(GL_FRAGMENT_SHADER);
@@ -175,7 +179,9 @@ void App::create() {
   glUseProgram(program);
 
   glEnableVertexAttribArray(0);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), 0);
+  glEnableVertexAttribArray(1);
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
 }
 
 void App::render() {
