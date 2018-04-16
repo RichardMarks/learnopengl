@@ -7,6 +7,8 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
+#include "smiley_face.h"
+
 #define SCREEN_WIDTH 960
 #define SCREEN_HEIGHT 480
 #define WINDOW_TITLE "Learn OpenGL"
@@ -32,6 +34,7 @@ class App {
     unsigned int vbo;
     unsigned int ebo;
     unsigned int program;
+    unsigned int texture;
 };
 
 App::App() :
@@ -101,6 +104,7 @@ App::App() :
 
 App::~App() {
   glUseProgram(0);
+  glDeleteTextures(1, &texture);
   glDeleteBuffers(1, &ebo);
   glDeleteBuffers(1, &vbo);
   glDeleteVertexArrays(1, &vao);
@@ -111,32 +115,40 @@ void App::create() {
   // coordinate system by default:
   // (-1.0, 1.0) is top left
   // (1.0, -1.0) is bottom right
-  const float sz = 1.0f;
   float vertices[] = {
-    // x, y, z, r, g, b
-    0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 0.0f,
-    0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f,
-    -0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f,
-    0.0f, -0.5f, 0.0f, 1.0f, 1.0f, 1.0f
+    // x, y, z, r, g, b, s, t
+    -1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
+     1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+     1.0f,-1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+    -1.0f,-1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f
   };
 
   unsigned int elements[] = {
     0, 1, 2,
-    2, 1, 3
+    2, 3, 0
   };
 
   const char* vertexShaderSource =
     "#version 410 core\n"
     "layout(location = 0) in vec3 vertex;\n"
     "layout(location = 1) in vec3 color;\n"
+    "layout(location = 2) in vec2 texcoord;\n"
     "out vec3 fragColor;\n"
-    "void main(){gl_Position = vec4(vertex, 1.0);fragColor=color;}";
+    "out vec2 fragTexcoord;\n"
+    "void main(){\n"
+    "gl_Position = vec4(vertex, 1.0);\n"
+    "fragColor=color;\n"
+    "fragTexcoord=texcoord;"
+    "\n}";
 
   const char* fragmentShaderSource =
     "#version 410 core\n"
     "in vec3 fragColor;\n"
+    "in vec2 fragTexcoord;\n"
     "out vec4 color;\n"
-    "void main(){color = vec4(fragColor, 1);}";
+    "uniform sampler2D tex;\n"
+    "void main(){\n"
+    "color = texture(tex, fragTexcoord) * vec4(fragColor, 1);}";
 
   unsigned int vs = glCreateShader(GL_VERTEX_SHADER);
   unsigned int fs = glCreateShader(GL_FRAGMENT_SHADER);
@@ -192,9 +204,26 @@ void App::create() {
   glUseProgram(program);
 
   glEnableVertexAttribArray(0);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), 0);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), 0);
   glEnableVertexAttribArray(1);
-  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+  glEnableVertexAttribArray(2);
+  glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+
+  glGenTextures(1, &texture);
+  glBindTexture(GL_TEXTURE_2D, texture);
+
+  int textureWidth = smileyFaceWidth;
+  int textureHeight = smileyFaceHeight;
+  float* pixels = smileyFacePixels;
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, textureWidth, textureHeight, 0, GL_RGB, GL_FLOAT, pixels);
+
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glGenerateMipmap(GL_TEXTURE_2D);
 }
 
 void App::render() {
