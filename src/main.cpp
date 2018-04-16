@@ -30,6 +30,7 @@ class App {
 
     unsigned int vao;
     unsigned int vbo;
+    unsigned int ebo;
     unsigned int program;
 };
 
@@ -37,6 +38,7 @@ App::App() :
   mainWindowPtr(0),
   vao(0),
   vbo(0),
+  ebo(0),
   program(0) {
   glfwSetErrorCallback(App::onError);
 
@@ -99,6 +101,7 @@ App::App() :
 
 App::~App() {
   glUseProgram(0);
+  glDeleteBuffers(1, &ebo);
   glDeleteBuffers(1, &vbo);
   glDeleteVertexArrays(1, &vao);
   glfwTerminate();
@@ -114,6 +117,10 @@ void App::create() {
     0.0f, sz, 0.0f, 1.0f, 0.0f, 0.0f,
     sz, -sz, 0.0f, 0.0f, 1.0f, 0.0f,
     -sz, -sz, 0.0f, 0.0f, 0.0f, 1.0f
+  };
+
+  unsigned int elements[] = {
+    0, 1, 2
   };
 
   const char* vertexShaderSource =
@@ -172,9 +179,13 @@ void App::create() {
   glBindVertexArray(vao);
 
   glGenBuffers(1, &vbo);
+  glGenBuffers(1, &ebo);
 
   glBindBuffer(GL_ARRAY_BUFFER, vbo);
   glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_STATIC_DRAW);
 
   glUseProgram(program);
 
@@ -190,7 +201,7 @@ void App::render() {
 
   glUseProgram(program);
 
-  glDrawArrays(GL_TRIANGLES, 0, 3);
+  glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0);
 
   glfwSwapBuffers(mainWindowPtr);
 
