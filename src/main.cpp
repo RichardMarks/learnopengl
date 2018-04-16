@@ -27,9 +27,17 @@ class App {
 
   private:
     GLFWwindow* mainWindowPtr;
+
+    unsigned int vao;
+    unsigned int vbo;
+    unsigned int program;
 };
 
-App::App() : mainWindowPtr(0) {
+App::App() :
+  mainWindowPtr(0),
+  vao(0),
+  vbo(0),
+  program(0) {
   glfwSetErrorCallback(App::onError);
 
   if (!glfwInit()) {
@@ -90,18 +98,98 @@ App::App() : mainWindowPtr(0) {
 }
 
 App::~App() {
+  glUseProgram(0);
+  glDeleteBuffers(1, &vbo);
+  glDeleteVertexArrays(1, &vao);
   glfwTerminate();
 }
 
 void App::create() {
+  // coordinate system by default:
+  // (-1.0, 1.0) is top left
+  // (1.0, -1.0) is bottom right
+  const float sz = 1.0f;
+  float vertices[] = {
+    0.0f, sz, 0.0f,
+    sz, -sz, 0.0f,
+    -sz, -sz, 0.0f
+  };
 
+  const char* vertexShaderSource =
+    "#version 410 core\n"
+    "layout(location = 0) in vec3 vertex;\n"
+    "void main(){gl_Position = vec4(vertex, 1.0);}";
+
+  const char* fragmentShaderSource =
+    "#version 410 core\n"
+    "out vec4 color;\n"
+    "void main(){color = vec4(1, 1, 1, 1);}";
+
+  unsigned int vs = glCreateShader(GL_VERTEX_SHADER);
+  unsigned int fs = glCreateShader(GL_FRAGMENT_SHADER);
+
+  int vsCompileStatus = 0;
+  int fsCompileStatus = 0;
+
+  glShaderSource(vs, 1, &vertexShaderSource, 0);
+  glCompileShader(vs);
+
+  glGetShaderiv(vs, GL_COMPILE_STATUS, &vsCompileStatus);
+  if (vsCompileStatus == GL_FALSE) {
+    throw std::runtime_error("Vertex Shader Compilation Failed");
+  }
+
+  glShaderSource(fs, 1, &fragmentShaderSource, 0);
+  glCompileShader(fs);
+
+  glGetShaderiv(fs, GL_COMPILE_STATUS, &fsCompileStatus);
+  if (fsCompileStatus == GL_FALSE) {
+    throw std::runtime_error("Fragment Shader Compilation Failed");
+  }
+
+  program = glCreateProgram();
+  glAttachShader(program, vs);
+  glAttachShader(program, fs);
+  glLinkProgram(program);
+
+  int linkStatus = 0;
+  glGetProgramiv(program, GL_LINK_STATUS, &linkStatus);
+  if (linkStatus == GL_FALSE) {
+    throw std::runtime_error("Shader Program Link Failed");
+  }
+
+  glDetachShader(program, vs);
+  glDetachShader(program, fs);
+
+  glDeleteShader(vs);
+  glDeleteShader(fs);
+
+  glGenVertexArrays(1, &vao);
+  glBindVertexArray(vao);
+
+  glGenBuffers(1, &vbo);
+
+  glBindBuffer(GL_ARRAY_BUFFER, vbo);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+  glUseProgram(program);
+
+  glEnableVertexAttribArray(0);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
 }
 
 void App::render() {
   glClearColor(0.2f, 0.4f, 0.8f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+  glUseProgram(program);
+
+  glDrawArrays(GL_TRIANGLES, 0, 3);
+
   glfwSwapBuffers(mainWindowPtr);
+
+  glUseProgram(0);
+
 }
 
 int main(int argc, char* argv[]) {
