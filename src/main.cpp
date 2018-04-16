@@ -114,13 +114,15 @@ void App::create() {
   const float sz = 1.0f;
   float vertices[] = {
     // x, y, z, r, g, b
-    0.0f, sz, 0.0f, 1.0f, 0.0f, 0.0f,
-    sz, -sz, 0.0f, 0.0f, 1.0f, 0.0f,
-    -sz, -sz, 0.0f, 0.0f, 0.0f, 1.0f
+    0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 0.0f,
+    0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+    -0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+    0.0f, -0.5f, 0.0f, 1.0f, 1.0f, 1.0f
   };
 
   unsigned int elements[] = {
-    0, 1, 2
+    0, 1, 2,
+    2, 1, 3
   };
 
   const char* vertexShaderSource =
@@ -201,7 +203,7 @@ void App::render() {
 
   glUseProgram(program);
 
-  glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0);
+  glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
   glfwSwapBuffers(mainWindowPtr);
 
